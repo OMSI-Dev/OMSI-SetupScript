@@ -1,0 +1,114 @@
+
+Function Check-RunAsAdministrator()
+{
+  #Get current user context
+  $CurrentUser = New-Object Security.Principal.WindowsPrincipal $([Security.Principal.WindowsIdentity]::GetCurrent())
+  
+  #Check user is running the script is member of Administrator Group
+  if($CurrentUser.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator))
+  {
+       Write-host "Script is running with Administrator privileges!"
+       #sleep -Seconds 2
+  }
+  else
+    {
+        #Create a new Elevated process to Start PowerShell
+        $ElevatedProcess = New-Object System.Diagnostics.ProcessStartInfo "PowerShell";
+               
+               
+        # Specify the current script path and name as a parameter
+        $ElevatedProcess.Arguments = "-NoExit -ExecutionPolicy bypass -File $($PWD)\OMSI_Setup.ps1"
+       
+        
+        #Set the Process to elevated
+        $ElevatedProcess.Verb = "runas"
+        #$elevatedprocess.UseShellExecute = 0
+        
+        #Start the new elevated process
+        [System.Diagnostics.Process]::Start($ElevatedProcess)
+       
+        #sleep -Seconds 2
+        exit  
+             
+ 
+    }
+}
+ 
+
+#Check Script is running with Elevated Privileges
+Check-RunAsAdministrator
+
+CD $PSScriptRoot
+Echo $PSScriptRoot
+sleep -Seconds 1
+#Place your script here.
+echo 'running with full privileges'
+
+$powerLoc = powercfg /import "$($pwd)\Misc\OMSIPower.pow" 0f7275a5-0272-43a9-a2ce-8fb27da021dc
+$password = ConvertTo-SecureString "omsiismo" -AsPlainText -Force
+$ard = "$($pwd)\Misc\arduino.exe"
+$args = "/S /NCRC"
+$nvid = "$($pwd)\Drivers\gfx_drivers.exe" 
+$nvidArg = "/s"
+
+echo "Installing Power Config"
+$powerLoc
+powercfg /setactive 0f7275a5-0272-43a9-a2ce-8fb27da021dc
+
+Echo "Installing Arduino drivers"
+certutil -addstore "TrustedPublisher" $PWD"\Drivers\arduino_driver.cer"
+certutil -addstore "TrustedPublisher" $PWD"\Drivers\adafruit_driver.cer"
+certutil -addstore "TrustedPublisher" $PWD"\setup\Drivers\arduinoSRL_driver.cer"
+Echo "Installing Arduino program - will wait til finished"
+Start-Process -FilePath $ard -ArgumentList $args -Wait
+
+Echo "Installing Nvidia Drivers - will wait til finished"
+Start-Process -File $nvid -ArgumentList $nvidArg -Wait 
+
+Echo "Installing Notepad++ - will wait til finished"
+Start-Process .\npp.8.2.1.Installer.exe /S -NoNewWindow -Wait
+
+Push-Location
+
+Echo "Creating OMSI Folder"
+CD C:\
+mkdir OMSI
+mkdir OMSI\ROC
+mkdir OMSI\Autologon
+mkdir OMSI\HDDLock
+mkdir OMSI\Game
+
+
+Echo "Copy Restart Scripts & Watchdog"
+Pop-Location
+
+Echo "Moving Restart on Crash"
+Echo "Does not work with Processing games, Use custom bat file for that."
+Copy-Item -path "$($pwd)\ROC\*" -Destination "C:\OMSI\ROC" -Force -recurse
+
+Echo "Creating Game User"
+New-LocalUser -Name "Game" -Password $password -FullName "Game" -Description "user that runs games" -PasswordNeverExpires -AccountNeverExpires
+Add-LocalGroupMember -Groups Users -Member Game
+
+Echo "Moving AutoLogon"
+Copy-Item -path "$($pwd)\AutoLogon\*" -Destination "C:\OMSI\Autologon\" -Force -recurse
+Echo "Set Autologon to 'Game' with password 'omsiismo'"
+Start-Sleep -Seconds 5
+Start-Process C:\OMSI\Autologon\Autologon.exe -Wait
+
+Echo "Copying...Watchdog. Edits need to be made to watchdog to search for proper game title"
+Echo "This can be done by commenting out the other games titles"
+Echo "Watchdog copies to 'Common Startup' and will open file explorer to set the proper game"
+Copy-Item -path "$($pwd)\Scripts\*" -Destination "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp" -Force -recurse
+Start-Sleep -Seconds 5
+explorer C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp
+
+Echo "Install Reboot Lock ***Prvents Tampering with HDD***"
+Echo "You will need to enable for it to take effect. Do AFTER everything is set."
+Copy-Item -path "$($pwd)\HDDLock\*" -Destination "C:\OMSI\HDDLock" -Force -recurse
+Start-Process "C:\OMSI\HDDLock\Setup.exe" -wait
+
+
+Write-Host -NoNewLine 'Finsished....Press any key to continue...';
+$null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown');
+exit

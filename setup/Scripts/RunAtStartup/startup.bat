@@ -1,0 +1,1 @@
+powershell.exe -executionpolicy bypass -file "C:\OMSI\Scripts\RunAtStartup\start_app.ps1"
