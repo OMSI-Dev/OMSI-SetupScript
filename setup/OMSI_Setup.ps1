@@ -56,7 +56,7 @@ mkdir OMSI\Scripts
 mkdir OMSI\Drivers
 
 clear
-if(if ($response -eq 'Y' -or $response -eq 'y') {
+if ($response -eq 'Y' -or $response -eq 'y') {
 	echo ""
 	echo ""
 	echo "The next Utility is used to purge windows bloat..."
@@ -68,7 +68,7 @@ if(if ($response -eq 'Y' -or $response -eq 'y') {
 	echo ""
 	echo ""
 	echo ""
-	sleep -Seconds 10
+	sleep -Seconds 5
 	iwr -useb https://christitus.com/win | iex
 
 	clear
@@ -76,6 +76,9 @@ if(if ($response -eq 'Y' -or $response -eq 'y') {
 	echo ""
 	echo ""
 	Echo "Activate Windows"
+	Echo "Press HWID (1)"
+	Echo "Press 1 to confirm"
+	Echo "Press 0 to exit"
 	echo ""
 	echo ""
 	irm https://massgrave.dev/get | iex
@@ -217,32 +220,49 @@ If($NetString.Contains("True"))
 	  Write-Host -noNewLine "`r$delay seconds before script continues..."
 	  }
 	$response = 'Y'  
+	
+	Write-Host "Installing winget & chocolatey before Win10 Utility Starts..."
+	
+	Set-ExecutionPolicy Bypass -Scope Process -Force; Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1')) -ErrorAction Stop
+	powershell choco feature enable -n allowGlobalConfirmation
+	
+	Start-Process -Verb runas -FilePath powershell.exe -ArgumentList "choco install winget"	-wait
+	
+	clear
+	Write-Host "Winget Should be installed..."
+	winget --version
+	Write-Host "Moving on..."
+	Sleep 5
 	Install_OMSI
 	
 }
 elseif("True" -notin $NetString)
 {
-Echo "************"
-Echo "  Offline!"
-Echo "************"
-Echo ""
-Echo "You will not be able to use the Win10 Utility or the Activation Script"
-Echo ""
+	Echo "************"
+	Echo "  Offline!"
+	Echo "************"
+	Echo ""
+	Echo "You will not be able to use the Win10 Utility or the Activation Script"
+	Echo ""
 
-# Prompt the user for input
-$response = Read-Host "Do you want to continue without internet? (Y/N)"
+	# Prompt the user for input
+	$response = Read-Host "Do you want to continue without internet? (Y/N)"
 
-# Check the response and take appropriate action
-if ($response -eq 'Y' -or $response -eq 'y') {
-    Write-Host "continuing without internet..."
-	sleep 3
-} elseif ($response -eq 'N' -or $response -eq 'n') {
-    Write-Host "Exiting script..."
-	sleep 3
-	Exit
-} else {
-    Write-Host "Invalid response. Please enter Y or N."
-}
+	# Check the response and take appropriate action
+	if ($response -eq 'Y' -or $response -eq 'y') {
+		Write-Host "continuing without internet..."
+		#set to no to skip the utility functions 
+		$response = 'N'
+		sleep 3
+		Install_OMSI
+		
+	} elseif ($response -eq 'N' -or $response -eq 'n') {
+		Write-Host "Exiting script..."
+		sleep 3
+		Exit
+	} else {
+		Write-Host "Invalid response. Please enter Y or N."
+	}
 
 }
 
