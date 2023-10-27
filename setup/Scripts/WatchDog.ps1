@@ -5,30 +5,28 @@ $INI = Get-Content "$($PSScriptRoot)\watch_dog_config.ini"
 
 $IniHash = @{}
 $IniTemp = @()
-ForEach($Line in $INI)
-{
-If ($Line -ne "" -and $Line.StartsWith("[") -ne $True)
-{
-    if($Line -and $Line.StartsWith("#") -ne $True)
-    {  
-    $Line = $Line -replace '\s',''  
-    $IniTemp += $Line
+ForEach ($Line in $INI) {
+    If ($Line -ne "" -and $Line.StartsWith("[") -ne $True) {
+        if ($Line -and $Line.StartsWith("#") -ne $True) {
+            $IniTemp += $Line
+        }
     }
 }
+
+ForEach ($Line in $IniTemp) {
+    $SplitArray = $Line -split '=', 2
+    if ($SplitArray.Count -eq 2) {
+        $Key = $SplitArray[0].Trim()
+        $Value = $SplitArray[1].Trim()
+        $IniHash += [ordered]@{ $Key = $Value }
+    }
 }
 
-ForEach($Line in $IniTemp)
-{
+Sleep -Seconds 5
 
-$SplitArray = $Line.Split("=")
-$IniHash += [ordered]@{$SplitArray[0] = $SplitArray[1]}
-}
+$gameTitle = $IniHash["app_name"]
+$CheckTime = $IniHash["check_time"]
 
-$gameTitle = $IniHash.app_name
-
-$CheckTime = $IniHash.check_time
-
-#| where {$_.PingSucceeded} |format-list PingSucceeded 
 
 #Close if OMSI-Admin is currently logged in
 $CurUser = (Get-WMIObject -ClassName Win32_ComputerSystem).Username 
@@ -53,7 +51,7 @@ clear
 $loop = 1
 Write-Host ""
 Write-Host "*******************************************************************************" 
-Write-Host "*** This will watch for the program """$($gameTitle)""" to crash every $($CheckTime) seconds.***"
+Write-Host "*** This will watch for the program ""$($gameTitle)"" to crash every $($CheckTime) seconds.***"
 Write-Host "***  The program will only display a message if the watched program crashes. ***"
 Write-Host "*******************************************************************************"
 Write-Host ""
