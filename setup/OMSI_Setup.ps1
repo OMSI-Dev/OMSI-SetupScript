@@ -56,36 +56,37 @@ mkdir OMSI\Scripts
 mkdir OMSI\Drivers
 
 clear
+if(if ($response -eq 'Y' -or $response -eq 'y') {
+	echo ""
+	echo ""
+	echo "The next Utility is used to purge windows bloat..."
+	echo "Install Chromium"
+	echo "Tweaks Set to Desktop - Remove windows related bloat (Apps & Edge)"
+	echo "Set Updates to Security Only"
+	echo "Script will continue after closing..."
+	echo ""
+	echo ""
+	echo ""
+	echo ""
+	sleep -Seconds 10
+	iwr -useb https://christitus.com/win | iex
 
-echo ""
-echo ""
-echo "The next Utility is used to purge windows bloat..."
-echo "Install Chromium"
-echo "Tweaks Set to Desktop - Remove windows related bloat (Apps & Edge)"
-echo "Set Updates to Security Only"
-echo "Script will continue after closing..."
-echo ""
-echo ""
-echo ""
-echo ""
-sleep -Seconds 10
-iwr -useb https://christitus.com/win | iex
+	clear
 
-clear
+	echo ""
+	echo ""
+	Echo "Activate Windows"
+	echo ""
+	echo ""
+	irm https://massgrave.dev/get | iex
+	echo ""
+	echo ""
+	clear
 
-echo ""
-echo ""
-Echo "Activate Windows"
-echo ""
-echo ""
-irm https://massgrave.dev/get | iex
-echo ""
-echo ""
-clear
-
-echo "Done with activation"
-sleep -Seconds 5
-clear
+	echo "Done with activation"
+	sleep -Seconds 5
+	clear
+}
 
 echo ""
 echo ""
@@ -208,13 +209,14 @@ If($NetString.Contains("True"))
 	Echo "Online!"
 	Clear-Host	
 	$delay = 5
+	
 	while ($delay -ge 0)
 	{
 	  start-sleep 1
 	  $delay -= 1
 	  Write-Host -noNewLine "`r$delay seconds before script continues..."
 	  }
-	  
+	$response = 'Y'  
 	Install_OMSI
 	
 }
@@ -224,9 +226,24 @@ Echo "************"
 Echo "  Offline!"
 Echo "************"
 Echo ""
-Echo "Run this script with an Internet Connection & Restart."
+Echo "You will not be able to use the Win10 Utility or the Activation Script"
 Echo ""
-Exit
+
+# Prompt the user for input
+$response = Read-Host "Do you want to continue without internet? (Y/N)"
+
+# Check the response and take appropriate action
+if ($response -eq 'Y' -or $response -eq 'y') {
+    Write-Host "continuing without internet..."
+	sleep 3
+} elseif ($response -eq 'N' -or $response -eq 'n') {
+    Write-Host "Exiting script..."
+	sleep 3
+	Exit
+} else {
+    Write-Host "Invalid response. Please enter Y or N."
+}
+
 }
 
 
