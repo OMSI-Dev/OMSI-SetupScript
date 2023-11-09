@@ -1,0 +1,34 @@
+Function Check-RunAsAdministrator()
+{
+  #Get current user context
+  $CurrentUser = New-Object Security.Principal.WindowsPrincipal $([Security.Principal.WindowsIdentity]::GetCurrent())
+  
+  #Check user is running the script is member of Administrator Group
+  if($CurrentUser.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator))
+  {
+       Write-host "Script is running with Administrator privileges!"
+       Write-Host ""       
+  }
+  else
+    {
+        #Create a new Elevated process to Start PowerShell
+        $ElevatedProcess = New-Object System.Diagnostics.ProcessStartInfo "PowerShell";
+               
+               
+        # Specify the current script path and name as a parameter
+        $ElevatedProcess.Arguments = "-NoExit -ExecutionPolicy bypass -File $($PWD)\OMSI_Setup.ps1"
+       
+        
+        #Set the Process to elevated
+        $ElevatedProcess.Verb = "runas"
+        #$elevatedprocess.UseShellExecute = 0
+        
+        #Start the new elevated process
+        [System.Diagnostics.Process]::Start($ElevatedProcess)
+       
+        #Start-Sleep -Seconds 2
+        exit  
+             
+ 
+    }
+}
