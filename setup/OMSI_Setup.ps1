@@ -219,6 +219,7 @@ If($NetString.Contains("True"))
 	  $delay -= 1
 	  Write-Host -noNewLine "`r$delay seconds before script continues..."
 	  }
+	  
 	$response = 'Y'  
 	
 	Write-Host "Installing winget & chocolatey before Win10 Utility Starts..."
