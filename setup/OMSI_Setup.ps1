@@ -1,6 +1,40 @@
-Clear-Host
+Function Check-RunAsAdministrator()
+{
+  #Get current user context
+  $CurrentUser = New-Object Security.Principal.WindowsPrincipal $([Security.Principal.WindowsIdentity]::GetCurrent())
+  
+  #Check user is running the script is member of Administrator Group
+  if($CurrentUser.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator))
+  {
+       Write-host "Script is running with Administrator privileges!"
+       Write-Host ""       
+  }
+  else
+    {
+        #Create a new Elevated process to Start PowerShell
+        $ElevatedProcess = New-Object System.Diagnostics.ProcessStartInfo "PowerShell";
+               
+               
+        # Specify the current script path and name as a parameter
+        $ElevatedProcess.Arguments = "-NoExit -ExecutionPolicy bypass -File $($PWD)\OMSI_Setup.ps1"
+       
+        
+        #Set the Process to elevated
+        $ElevatedProcess.Verb = "runas"
+        #$elevatedprocess.UseShellExecute = 0
+        
+        #Start the new elevated process
+        [System.Diagnostics.Process]::Start($ElevatedProcess)
+       
+        #Start-Sleep -Seconds 2
+        exit  
+             
+ 
+    }
+}
+
 Write-Host "Starting install..."
-Start-Sleep 5
+Start-Sleep 3
 
 
 Function Install_OMSI {
@@ -16,15 +50,16 @@ Write-Host ""
 Write-Host "Creating OMSI Folder at the Root of C:\"
 Start-Sleep -Seconds 3
 Set-Location C:\
-mkdir OMSI
-mkdir OMSI\ROC
-mkdir OMSI\Autologon
-mkdir OMSI\HDDLock
-mkdir OMSI\App
-mkdir OMSI\Scripts
-mkdir OMSI\Drivers
+if(-not (Test-Path "C:\OMSI")){ mkdir C:\OMSI}
+if(-not (Test-Path "C:\OMSI\ROC")){ mkdir C:\OMSI\ROC}
+if(-not (Test-Path "C:\OMSI\Autologon")){ mkdir C:\OMSI\Autologon}
+if(-not (Test-Path "C:\OMSI\HDDLock")){ mkdir C:\OMSI\HDDLock}
+if(-not (Test-Path "C:\OMSI\App")){ mkdir C:\OMSI\App}
+if(-not (Test-Path "C:\OMSI\Scripts")){ mkdir C:\OMSI\Scripts}
+if(-not (Test-Path "C:\OMSI\Drivers")){ mkdir C:\OMSI\Drivers}
 
-Clear-Host
+
+
 if ($response -eq 'Y' -or $response -eq 'y') {
 	Write-Host ""
 	Write-Host ""
@@ -37,10 +72,10 @@ if ($response -eq 'Y' -or $response -eq 'y') {
 	Write-Host ""
 	Write-Host ""
 	Write-Host ""
-	Start-Sleep -Seconds 5
-	Invoke-WebRequest -useb https://christitus.com/win | Invoke-Expression
-
-	Clear-Host
+	Start-Sleep -Seconds 3
+	#irm https://christitus.com/win | iex
+	irm https://christitus.com/win | iex -Config "D:\setup\CTT_Program_Preset.json" -Run
+	
 
 	Write-Host ""
 	Write-Host ""
@@ -53,11 +88,11 @@ if ($response -eq 'Y' -or $response -eq 'y') {
 	Invoke-RestMethod https://massgrave.dev/get | Invoke-Expression
 	Write-Host ""
 	Write-Host ""
-	Clear-Host
+	
 
 	Write-Host "Done with activation"
-	Start-Sleep -Seconds 5
-	Clear-Host
+	Start-Sleep -Seconds 3
+	
 }
 
 Write-Host ""
@@ -76,15 +111,15 @@ Write-Host ""
 Write-Host ""
 Write-Host "Moving AutoLogon"
 Copy-Item -path "$($pwd)\AutoLogon\*" -Destination "C:\OMSI\Autologon\" -Force -recurse
-Start-Start-Sleep -Seconds 5
+Start-Sleep -Seconds 3
 
 Write-Host ""
 Write-Host ""
 Write-Host "Moving Drivers...This can take a couple minutes"
 Copy-Item -path "$($pwd)\Drivers\*" -Destination "C:\OMSI\Drivers\" -Force -recurse
-Start-Start -Seconds 5
+Start-Sleep -Seconds 3
 
-Clear-Host
+
 
 Write-Host ""
 Write-Host ""
@@ -99,7 +134,7 @@ Write-Host "Removing Password Expiration..."
 $UsrExp =  "wmic UserAccount where Name='Game' set PasswordExpires=False & timeout /t 3"
 Start-Process -Verb RunAs cmd.exe -Args '/c', $UsrExp
 
-Clear-Host
+
 
 Write-Host ""
 Write-Host "Copying...Watchdog. It needs to be configured. If you are not using ROC"
@@ -108,10 +143,10 @@ Write-Host "Watchdog copies to C:\OMSI\Scripts\ and will open file explorer to s
 Write-Host ""
 Copy-Item -path "$($pwd)\Scripts\RunAtStartup\startup.bat*" -Destination "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp" -Force
 Copy-Item -path "$($pwd)\Scripts\*" -Destination "C:\OMSI\Scripts" -Force -recurse
-Start-Start-Sleep -Seconds 5
+Start-Sleep -Seconds 3
 explorer "C:\OMSI\Scripts\"
 
-Clear-Host
+
 Write-Host ""
 Write-Host ""
 Write-Host "...Creating Shortcuts for OMSI-Admin..."
@@ -119,22 +154,22 @@ $WshShell = New-Object -comObject WScript.Shell
 $Shortcut = $WshShell.CreateShortcut("C:\Users\OMSI-Admin\Desktop\Documents.lnk")
 $Shortcut.TargetPath = "C:\Users\OMSI-Admin\Documents\"
 $Shortcut.Save()
-Clear-Host
+
 $WshShell = New-Object -comObject WScript.Shell
 $Shortcut = $WshShell.CreateShortcut("C:\Users\OMSI-Admin\Desktop\C Drive.lnk")
 $Shortcut.TargetPath = "C:\"
 $Shortcut.Save()
-Clear-Host
+
 $WshShell = New-Object -comObject WScript.Shell
 $Shortcut = $WshShell.CreateShortcut("C:\Users\OMSI-Admin\Desktop\OMSI Software.lnk")
 $Shortcut.TargetPath = "C:\OMSI\"
 $Shortcut.Save()
-Clear-Host
+
 $WshShell = New-Object -comObject WScript.Shell
 $Shortcut = $WshShell.CreateShortcut("C:\Users\OMSI-Admin\Desktop\Startup.lnk")
 $Shortcut.TargetPath = "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp"
 $Shortcut.Save()
-Clear-Host
+
 
 
 Write-Host ""
@@ -142,16 +177,6 @@ Write-Host ""
 Write-Host "Moving OMSI_Layout to C:\"
 Write-Host "This locks out the start menu."
 Copy-Item -path "$($pwd)\Scripts\OMSI_Layout.xml" -Destination "C:\" -Force -recurse
-
-Clear-Host
-
-Write-Host ""
-Write-Host "Install Reboot Lock ***Prevents Tampering with HDD***"
-Write-Host "This will be ****enabled right after Install!***** You will need to disable to make changes to the system"
-Write-Host "***** This includes any OMSI Custom software *****"
-Start-Sleep -Seconds 5
-Copy-Item -path "$($pwd)\HDDLock\*" -Destination "C:\OMSI\HDDLock" -Force -recurse
-Start-Process "C:\OMSI\HDDLock\Setup.exe" -wait
 
 Write-Host ""
 Write-Host -NoNewLine 'Finsished....Closing Script';
@@ -161,8 +186,8 @@ exit
 
 #Check Script is running with Elevated Privileges
 Write-Host "Checking admin level"
-Start-Sleep -Seconds 5
-#Check-RunAsAdministrator
+Start-Sleep -Seconds 3
+Check-RunAsAdministrator
 
 Set-Location $PSScriptRoot
 Write-Host "Running from: $($PSScriptRoot) "
@@ -181,40 +206,40 @@ Write-Host ""
 If($NetString.Contains("True"))
 {
 	Write-Host "Online!"
-	Clear-Host
+	
 	$delay = 5
 	
-	while ($delay -ge 0)
+	while ($delay -ge 1)
 	{
-	  start-Start-Sleep 1
+	  Start-Sleep 1
 	  $delay -= 1
 	  Write-Host -noNewLine "`r$delay seconds before script continues..."
 	  }
 	  
 	$response = 'Y'  
-	
 
-	
-	if(Test-Path -Path $flagFile -PathType Leaf)
-	{
-	Start-Process -Verb runas -FilePath powershell.exe -ArgumentList "choco install winget"	-wait
-	Remove-Item "restart.flag"
-	} else {
-		Write-Host "Installing & chocolatey before Win10 Utility Starts..."
-	
-		Set-ExecutionPolicy Bypass -Scope Process -Force; Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1')) -ErrorAction Stop
-		powershell choco feature enable -n allowGlobalConfirmation
-		$flagFile = "restart.flag"
-		$flagFIle = "OMSI_Setup_Completed.flag"
-		Start-Sleep -Seconds 10
-		Exit-PSHostProcess
-	}
+	# get latest download url
+	$URL = "https://api.github.com/repos/microsoft/winget-cli/releases/latest"
+	$URL = (Invoke-WebRequest -Uri $URL).Content -UseBasicParsing | ConvertFrom-Json |
+			Select-Object -ExpandProperty "assets" |
+			Where-Object "browser_download_url" -Match '.msixbundle' |
+			Select-Object -ExpandProperty "browser_download_url"
 
-	Clear-Host-Host
-	Write-Host "Winget Should be installed..."
+	# download
+	Invoke-WebRequest -Uri $URL -OutFile "Setup.msix" -UseBasicParsing
+
+	# install
+	Add-AppxPackage -Path "Setup.msix"
+
+	# delete file
+	Remove-Item "Setup.msix"
+		
+	
+	Write-Host "Winget Should be installed...and show its version number below."
 	winget --version
-	Write-Host "Moving on..."
-	Start-Start-Sleep 5
+	Write-Host "Moving on regardless, CTT should attempt to install anyways."
+	Start-Sleep 5
+	Clear-Host
 	Install_OMSI
 	
 }
