@@ -21,7 +21,6 @@ Function Check-RunAsAdministrator()
         
         #Set the Process to elevated
         $ElevatedProcess.Verb = "runas"
-        #$elevatedprocess.UseShellExecute = 0
         
         #Start the new elevated process
         [System.Diagnostics.Process]::Start($ElevatedProcess)
@@ -38,6 +37,7 @@ Start-Sleep 3
 
 
 Function Install_OMSI {
+	
 $powerLoc = powercfg /import "$($pwd)\Misc\OMSIPower.pow" 0f7275a5-0272-43a9-a2ce-8fb27da021dc
 
 Write-Host "Impporting OMSI Powerplan..."
@@ -53,7 +53,6 @@ Set-Location C:\
 if(-not (Test-Path "C:\OMSI")){ mkdir C:\OMSI}
 if(-not (Test-Path "C:\OMSI\ROC")){ mkdir C:\OMSI\ROC}
 if(-not (Test-Path "C:\OMSI\Autologon")){ mkdir C:\OMSI\Autologon}
-if(-not (Test-Path "C:\OMSI\HDDLock")){ mkdir C:\OMSI\HDDLock}
 if(-not (Test-Path "C:\OMSI\App")){ mkdir C:\OMSI\App}
 if(-not (Test-Path "C:\OMSI\Scripts")){ mkdir C:\OMSI\Scripts}
 if(-not (Test-Path "C:\OMSI\Drivers")){ mkdir C:\OMSI\Drivers}
@@ -73,10 +72,8 @@ if ($response -eq 'Y' -or $response -eq 'y') {
 	Write-Host ""
 	Write-Host ""
 	Start-Sleep -Seconds 3
-	#irm https://christitus.com/win | iex
-	irm https://christitus.com/win | iex -Config "D:\setup\CTT_Program_Preset.json" -Run
+    iex "& { $(irm https://christitus.com/win) } -Config D:\setup\CTT_Preset.json -Run"
 	
-
 	Write-Host ""
 	Write-Host ""
 	Write-Host "Activate Windows"
@@ -85,7 +82,7 @@ if ($response -eq 'Y' -or $response -eq 'y') {
 	Write-Host "Press 0 to exit"
 	Write-Host ""
 	Write-Host ""
-	Invoke-RestMethod https://massgrave.dev/get | Invoke-Expression
+	irm https://get.activated.win | iex
 	Write-Host ""
 	Write-Host ""
 	
@@ -141,6 +138,7 @@ Write-Host "Copying...Watchdog. It needs to be configured. If you are not using 
 Write-Host "This can be done by modifying the watchdog INI and edit app_name to what ever app is copied later."
 Write-Host "Watchdog copies to C:\OMSI\Scripts\ and will open file explorer to set the proper app"
 Write-Host ""
+Start-Sleep -Seconds 5
 Copy-Item -path "$($pwd)\Scripts\RunAtStartup\startup.bat*" -Destination "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp" -Force
 Copy-Item -path "$($pwd)\Scripts\*" -Destination "C:\OMSI\Scripts" -Force -recurse
 Start-Sleep -Seconds 3
@@ -179,7 +177,7 @@ Write-Host "This locks out the start menu."
 Copy-Item -path "$($pwd)\Scripts\OMSI_Layout.xml" -Destination "C:\" -Force -recurse
 
 Write-Host ""
-Write-Host -NoNewLine 'Finsished....Closing Script';
+Write-Host "Finsished....Closing Script"
 Start-Sleep -Seconds 3
 exit
 } 
@@ -199,6 +197,7 @@ $ProgressPreference = 'SilentlyContinue'
 $NetCon = TNC -WarningAction silentlyContinue | where-Object {$_.PingSucceeded} |format-list PingSucceeded 
 $NetString = $NetCon | Out-String -Stream | Select-String -Pattern "True" -SimpleMatch
 $NetString = Out-String -InputObject $NetString
+
 Write-Host ""
 Write-Host "Checking connection to internet..."
 Write-Host ""
@@ -207,7 +206,7 @@ If($NetString.Contains("True"))
 {
 	Write-Host "Online!"
 	
-	$delay = 5
+	$delay = 3
 	
 	while ($delay -ge 1)
 	{
@@ -217,10 +216,10 @@ If($NetString.Contains("True"))
 	  }
 	  
 	$response = 'Y'  
-
+    
 	# get latest download url
 	$URL = "https://api.github.com/repos/microsoft/winget-cli/releases/latest"
-	$URL = (Invoke-WebRequest -Uri $URL).Content -UseBasicParsing | ConvertFrom-Json |
+	$URL = (Invoke-WebRequest -Uri $URL).Content | ConvertFrom-Json |
 			Select-Object -ExpandProperty "assets" |
 			Where-Object "browser_download_url" -Match '.msixbundle' |
 			Select-Object -ExpandProperty "browser_download_url"
@@ -234,7 +233,7 @@ If($NetString.Contains("True"))
 	# delete file
 	Remove-Item "Setup.msix"
 		
-	
+	Write-Host ""
 	Write-Host "Winget Should be installed...and show its version number below."
 	winget --version
 	Write-Host "Moving on regardless, CTT should attempt to install anyways."
