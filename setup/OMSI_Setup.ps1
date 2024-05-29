@@ -217,6 +217,8 @@ If($NetString.Contains("True"))
 	  
 	$response = 'Y'  
     
+	Write-Host ""
+	Write-Host "Downloading latest winget..."
 	# get latest download url
 	$URL = "https://api.github.com/repos/microsoft/winget-cli/releases/latest"
 	$URL = (Invoke-WebRequest -Uri $URL).Content | ConvertFrom-Json |
